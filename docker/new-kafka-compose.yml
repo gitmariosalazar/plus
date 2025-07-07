@@ -1,0 +1,47 @@
+version: '3.8'
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:latest
+    container_name: zookeeper
+    ports:
+      - '2181:2181'
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+      ZOOKEEPER_SERVER_ID: 1
+      JVMFLAGS: '-Xmx512M -Xms512M'
+    ulimits:
+      nofile:
+        soft: 4096
+        hard: 65536
+    mem_limit: 1g
+    mem_reservation: 512m
+    networks:
+      - kafka-network
+    restart: unless-stopped
+
+  kafka:
+    image: wurstmeister/kafka:latest
+    container_name: kafka
+    ports:
+      - '9092:9092'
+    environment:
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+    depends_on:
+      - zookeeper
+    ulimits:
+      nofile:
+        soft: 4096
+        hard: 65536
+    mem_limit: 1g
+    mem_reservation: 512m
+    networks:
+      - kafka-network
+    restart: unless-stopped
+
+networks:
+  kafka-network:
+    driver: bridge
