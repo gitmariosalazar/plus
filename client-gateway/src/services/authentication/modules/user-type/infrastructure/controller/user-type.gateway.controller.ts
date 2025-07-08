@@ -12,19 +12,19 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
-import { ClientKafka, ClientProxy, RpcException } from '@nestjs/microservices';
+import { ClientKafka, RpcException } from '@nestjs/microservices';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { catchError, firstValueFrom, timeout } from 'rxjs';
 import { environments } from 'src/settings/environments/environments';
 import { ApiResponse } from 'src/shared/errors/responses/ApiResponse';
 import { CreateUserTypeRequest } from '../../domain/schemas/dto/request/create.user-type.request';
 import { UpdateUserTypeRequest } from '../../domain/schemas/dto/request/update.user-type.request';
 import { AuthGuard } from 'src/auth/guard/auth.guard';
+import { sendKafkaRequest } from 'src/shared/utils/kafka/send.kafka.request';
 
 @Controller('user-type')
 @ApiTags('user-type')
-//@ApiBearerAuth()
-//@UseGuards(AuthGuard)
+@ApiBearerAuth()
+@UseGuards(AuthGuard)
 export class UserTypeGatewayController implements OnModuleInit {
   constructor(
     @Inject(environments.authenticationKafkaClient)
@@ -51,14 +51,8 @@ export class UserTypeGatewayController implements OnModuleInit {
   async findAll(@Req() request: Request): Promise<ApiResponse> {
     try {
       console.log(`Sending request to user-type.find-all`);
-      const userTypes = await firstValueFrom(
-        this.userTypeClient.send('user-type.find-all', {}).pipe(
-          timeout(10000), // Timeout after 10 seconds
-          catchError((error) => {
-            console.error(`Error occurred while fetching user types:`);
-            throw new RpcException(error);
-          }),
-        ),
+      const userTypes = await sendKafkaRequest(
+        this.userTypeClient.send('user-type.find-all', {}),
       );
       console.log(`Response received from user-type.find-all`);
       return new ApiResponse(
@@ -82,7 +76,7 @@ export class UserTypeGatewayController implements OnModuleInit {
     @Param('idUserType', ParseIntPipe) idUserType: number,
   ): Promise<ApiResponse> {
     try {
-      const userType = await firstValueFrom(
+      const userType = await sendKafkaRequest(
         this.userTypeClient.send('user-type.find-by-id', { idUserType }),
       );
       return new ApiResponse(
@@ -105,7 +99,7 @@ export class UserTypeGatewayController implements OnModuleInit {
     @Body() userTypeRequest: CreateUserTypeRequest,
   ): Promise<ApiResponse> {
     try {
-      const createdUserType = await firstValueFrom(
+      const createdUserType = await sendKafkaRequest(
         this.userTypeClient.send('user-type.create', userTypeRequest),
       );
       return new ApiResponse(
@@ -130,7 +124,7 @@ export class UserTypeGatewayController implements OnModuleInit {
     @Body() userTypeRequest: UpdateUserTypeRequest,
   ): Promise<ApiResponse> {
     try {
-      const updatedUserType = await firstValueFrom(
+      const updatedUserType = await sendKafkaRequest(
         this.userTypeClient.send('user-type.update', {
           idUserType,
           userTypeRequest,
@@ -156,7 +150,7 @@ export class UserTypeGatewayController implements OnModuleInit {
     @Param('idUserType', ParseIntPipe) idUserType: number,
   ): Promise<ApiResponse> {
     try {
-      const isDeleted = await firstValueFrom(
+      const isDeleted = await sendKafkaRequest(
         this.userTypeClient.send('user-type.delete', { idUserType }),
       );
       return new ApiResponse(
@@ -179,7 +173,7 @@ export class UserTypeGatewayController implements OnModuleInit {
     @Param('name') name: string,
   ): Promise<ApiResponse> {
     try {
-      const userType = await firstValueFrom(
+      const userType = await sendKafkaRequest(
         this.userTypeClient.send('user-type.find-by-name', { name }),
       );
       return new ApiResponse(
@@ -203,7 +197,7 @@ export class UserTypeGatewayController implements OnModuleInit {
     @Param('name') name: string,
   ): Promise<ApiResponse> {
     try {
-      const userTypes = await firstValueFrom(
+      const userTypes = await sendKafkaRequest(
         this.userTypeClient.send('user-type.find-like-name', { name }),
       );
       return new ApiResponse(

@@ -26,8 +26,10 @@ async function bootstrap() {
     customCssUrl:
       'https://mariosalazar-styles-swagger-ui.vercel.app/css/swagger-ui.css',
   });
-  await app.listen(6003);
-  logger.log(`🚀🎉 This API is running on: http://127.0.0.1:${6003}`);
+  await app.listen(environments.serverPort);
+  logger.log(
+    `🚀🎉 This API is running on: http://127.0.0.1:${environments.serverPort}`,
+  );
 
   const microservices =
     await NestFactory.createMicroservice<MicroserviceOptions>(AppModule, {

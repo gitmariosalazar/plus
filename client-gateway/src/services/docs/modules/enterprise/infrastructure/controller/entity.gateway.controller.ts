@@ -10,16 +10,21 @@ import {
   Post,
   Put,
   Req,
+  UseGuards,
 } from '@nestjs/common';
-import { ClientKafka, ClientProxy, RpcException } from '@nestjs/microservices';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ClientKafka, RpcException } from '@nestjs/microservices';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { environments } from 'src/settings/environments/environments';
 import { CreateEntityRequest } from '../../domain/schemas/dto/request/create.entity.request';
 import { firstValueFrom } from 'rxjs';
 import { ApiResponse } from 'src/shared/errors/responses/ApiResponse';
+import { sendKafkaRequest } from 'src/shared/utils/kafka/send.kafka.request';
+import { AuthGuard } from 'src/auth/guard/auth.guard';
 
 @Controller('entity')
 @ApiTags('Entity')
+@ApiBearerAuth()
+@UseGuards(AuthGuard)
 export class EntityGatewayController implements OnModuleInit {
   constructor(
     @Inject(environments.documentsKafkaClient)
@@ -46,7 +51,7 @@ export class EntityGatewayController implements OnModuleInit {
     @Req() request: Request,
   ): Promise<ApiResponse> {
     try {
-      const entityCreated = await firstValueFrom(
+      const entityCreated = await sendKafkaRequest(
         this.entityClient.send('entity.create', entity),
       );
 

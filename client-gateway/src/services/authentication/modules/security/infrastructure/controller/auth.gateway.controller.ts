@@ -8,15 +8,15 @@ import {
   Req,
 } from '@nestjs/common';
 import { Request } from 'express';
-import { ClientKafka, ClientProxy, RpcException } from '@nestjs/microservices';
+import { ClientKafka, RpcException } from '@nestjs/microservices';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { environments } from 'src/settings/environments/environments';
 import { SignInRequest } from '../../domain/schemas/dto/request/signin.request';
 import { ApiResponse } from 'src/shared/errors/responses/ApiResponse';
 import { SignUpRequest } from '../../domain/schemas/dto/request/signup.request';
-import { firstValueFrom } from 'rxjs';
 import { CreateLogsNotificationsRequest } from 'src/services/notifications/modules/notifications/domain/schemas/dto/request/create.logs-notifications.request';
 import { statusCode } from 'src/settings/environments/status-code';
+import { sendKafkaRequest } from 'src/shared/utils/kafka/send.kafka.request';
 
 @Controller('auth')
 @ApiTags('Authentication')
@@ -50,9 +50,9 @@ export class AuthGatewayController implements OnModuleInit {
       this.logger.log(
         `Received sign-in request for user: ${signInRequest.email}`,
       );
-      const tokenResponse = await firstValueFrom(
+      const tokenResponse = (await sendKafkaRequest(
         this.authClient.send('auth.signin', signInRequest),
-      );
+      )) as { idUser?: string; [key: string]: any };
 
       const clientIp =
         request.headers['x-forwarded-for']?.toString().split(',')[0].trim() ||
@@ -66,7 +66,8 @@ export class AuthGatewayController implements OnModuleInit {
         email: signInRequest.email,
         module: 'Authentication Module',
         eventType: 'sign_in',
-        userId: tokenResponse.idUser ? tokenResponse.idUser : 'root',
+        userId:
+          typeof tokenResponse.idUser === 'number' ? tokenResponse.idUser : 0,
         userEmail: signInRequest.email,
         ipAddress: clientIp,
         userAgent: request.headers['user-agent'],
@@ -113,9 +114,12 @@ export class AuthGatewayController implements OnModuleInit {
       const clientIp =
         request.headers['x-forwarded-for']?.toString().split(',')[0].trim() ||
         request.socket.remoteAddress;
-      const tokenResponse = await firstValueFrom(
+      const tokenResponse = (await sendKafkaRequest(
         this.authClient.send('auth.signup', signUpRequest),
-      );
+      )) as {
+        idUser?: string;
+        [key: string]: any;
+      };
 
       const notification: CreateLogsNotificationsRequest = {
         log: 'User signed up successfully',
@@ -125,7 +129,8 @@ export class AuthGatewayController implements OnModuleInit {
         email: signUpRequest.userEmail,
         module: 'Authentication Module',
         eventType: 'sign_up',
-        userId: tokenResponse.idUser ? tokenResponse.idUser : 'root',
+        userId:
+          typeof tokenResponse.idUser === 'number' ? tokenResponse.idUser : 0,
         userEmail: signUpRequest.userEmail,
         ipAddress: clientIp,
         userAgent: request.headers['user-agent'],

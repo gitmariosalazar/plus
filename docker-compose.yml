@@ -1,0 +1,62 @@
+version: '3.8'
+
+services:
+  client-gateway:
+    build:
+      context: ./client-gateway
+      dockerfile: dockerfile.dev
+    ports:
+      - '3000:3000'
+    volumes:
+      - ./client-gateway/src:/usr/src/app/src
+    command: npm run start:dev
+    env_file:
+      - ./client-gateway/.env
+    networks:
+      - plus-network
+
+  security-ms:
+    build:
+      context: ./security
+      dockerfile: dockerfile.dev
+    ports:
+      - '4001:4001'
+    volumes:
+      - ./security/src:/usr/src/app/src
+    command: npm run start:dev
+    env_file:
+      - ./security/.env
+    networks:
+      - plus-network
+
+  notifications-ms:
+    build:
+      context: ./notifications
+      dockerfile: dockerfile.dev
+    ports:
+      - '6003:6003'
+    volumes:
+      - ./notifications/src:/usr/src/app/src
+    command: npm run start:dev
+    env_file:
+      - ./notifications/.env
+    networks:
+      - plus-network
+
+  docs-ms:
+    build:
+      context: ./docs
+      dockerfile: dockerfile.dev
+    ports:
+      - '5001:5001'
+    volumes:
+      - ./docs/src:/usr/src/app/src
+    command: npm run start:dev
+    env_file:
+      - ./docs/.env
+    networks:
+      - plus-network
+
+networks:
+  plus-network:
+    external: true

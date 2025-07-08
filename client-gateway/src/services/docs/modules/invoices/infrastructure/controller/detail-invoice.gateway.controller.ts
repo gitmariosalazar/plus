@@ -11,17 +11,21 @@ import {
   Post,
   Put,
   Req,
+  UseGuards,
 } from '@nestjs/common';
-import { ClientKafka, ClientProxy, RpcException } from '@nestjs/microservices';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ClientKafka, RpcException } from '@nestjs/microservices';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { environments } from 'src/settings/environments/environments';
 import { CreateDetailInvoiceRequest } from '../../domain/schemas/dto/request/create.detail-invoice.request';
 import { ApiResponse } from 'src/shared/errors/responses/ApiResponse';
-import { firstValueFrom } from 'rxjs';
 import { UpdateDetailInvoiceRequest } from '../../domain/schemas/dto/request/update.detail-invoice.request';
+import { AuthGuard } from 'src/auth/guard/auth.guard';
+import { sendKafkaRequest } from 'src/shared/utils/kafka/send.kafka.request';
 
 @Controller('detail-invoice')
 @ApiTags('Detail Invoice')
+@ApiBearerAuth()
+@UseGuards(AuthGuard)
 export class DetailInvoiceGatewayController implements OnModuleInit {
   private readonly logger = new Logger(DetailInvoiceGatewayController.name);
   constructor(
@@ -65,7 +69,7 @@ export class DetailInvoiceGatewayController implements OnModuleInit {
     @Body() detailInvoice: CreateDetailInvoiceRequest,
   ): Promise<ApiResponse> {
     try {
-      const detailInvoiceResponse = await firstValueFrom(
+      const detailInvoiceResponse = await sendKafkaRequest(
         this.kafkaClient.send('detailInvoice.create', detailInvoice),
       );
       if (detailInvoiceResponse) {
@@ -93,7 +97,7 @@ export class DetailInvoiceGatewayController implements OnModuleInit {
     @Body() detailInvoice: UpdateDetailInvoiceRequest,
   ): Promise<ApiResponse> {
     try {
-      const detailInvoiceResponse = await firstValueFrom(
+      const detailInvoiceResponse = await sendKafkaRequest(
         this.kafkaClient.send('detailInvoice.update', {
           idDetailInvoice,
           detailInvoice,
@@ -120,7 +124,7 @@ export class DetailInvoiceGatewayController implements OnModuleInit {
     @Param('idDetailInvoice', ParseIntPipe) idDetailInvoice: number,
   ): Promise<ApiResponse> {
     try {
-      const detailInvoiceResponse = await firstValueFrom(
+      const detailInvoiceResponse = await sendKafkaRequest(
         this.kafkaClient.send('detailInvoice.find-by-id', { idDetailInvoice }),
       );
       return new ApiResponse(
@@ -144,7 +148,7 @@ export class DetailInvoiceGatewayController implements OnModuleInit {
       this.logger.warn(
         '[Client Gateway] Sending request to find all detail invoices',
       );
-      const detailInvoicesResponse = await firstValueFrom(
+      const detailInvoicesResponse = await sendKafkaRequest(
         this.kafkaClient.send('detailInvoice.find-all', {}),
       );
       this.logger.warn(
@@ -171,7 +175,7 @@ export class DetailInvoiceGatewayController implements OnModuleInit {
     @Param('idDetailInvoice', ParseIntPipe) idDetailInvoice: number,
   ): Promise<ApiResponse> {
     try {
-      const isDeleted = await firstValueFrom(
+      const isDeleted = await sendKafkaRequest(
         this.kafkaClient.send('detailInvoice.delete', { idDetailInvoice }),
       );
       return new ApiResponse(
@@ -195,7 +199,7 @@ export class DetailInvoiceGatewayController implements OnModuleInit {
     @Param('idProcess', ParseIntPipe) idProcess: number,
   ): Promise<ApiResponse> {
     try {
-      const detailInvoicesResponse = await firstValueFrom(
+      const detailInvoicesResponse = await sendKafkaRequest(
         this.kafkaClient.send('detailInvoice.find-by-process-id', {
           idProcess,
         }),
@@ -221,7 +225,7 @@ export class DetailInvoiceGatewayController implements OnModuleInit {
     @Param('idEntity', ParseIntPipe) idEntity: number,
   ): Promise<ApiResponse> {
     try {
-      const detailInvoicesResponse = await firstValueFrom(
+      const detailInvoicesResponse = await sendKafkaRequest(
         this.kafkaClient.send('detailInvoice.find-by-entity-id', { idEntity }),
       );
       return new ApiResponse(
@@ -245,7 +249,7 @@ export class DetailInvoiceGatewayController implements OnModuleInit {
     @Param('idStatus', ParseIntPipe) idStatus: number,
   ): Promise<ApiResponse> {
     try {
-      const detailInvoicesResponse = await firstValueFrom(
+      const detailInvoicesResponse = await sendKafkaRequest(
         this.kafkaClient.send('detailInvoice.find-by-status-id', { idStatus }),
       );
       return new ApiResponse(
@@ -269,7 +273,7 @@ export class DetailInvoiceGatewayController implements OnModuleInit {
     @Param('idTypePayment', ParseIntPipe) idTypePayment: number,
   ): Promise<ApiResponse> {
     try {
-      const detailInvoicesResponse = await firstValueFrom(
+      const detailInvoicesResponse = await sendKafkaRequest(
         this.kafkaClient.send('detailInvoice.find-by-type-payment-id', {
           idTypePayment,
         }),
@@ -295,7 +299,7 @@ export class DetailInvoiceGatewayController implements OnModuleInit {
     @Param('idDocument', ParseIntPipe) idDocument: number,
   ): Promise<ApiResponse> {
     try {
-      const detailInvoicesResponse = await firstValueFrom(
+      const detailInvoicesResponse = await sendKafkaRequest(
         this.kafkaClient.send('detailInvoice.find-by-document-id', {
           idDocument,
         }),
@@ -321,7 +325,7 @@ export class DetailInvoiceGatewayController implements OnModuleInit {
     @Param('invoiceNumber') invoiceNumber: string,
   ): Promise<ApiResponse> {
     try {
-      const detailInvoiceResponse = await firstValueFrom(
+      const detailInvoiceResponse = await sendKafkaRequest(
         this.kafkaClient.send('detailInvoice.find-by-invoice-number', {
           invoiceNumber,
         }),
@@ -347,7 +351,7 @@ export class DetailInvoiceGatewayController implements OnModuleInit {
     @Param('emissionDate') emissionDate: Date,
   ): Promise<ApiResponse> {
     try {
-      const detailInvoicesResponse = await firstValueFrom(
+      const detailInvoicesResponse = await sendKafkaRequest(
         this.kafkaClient.send('detailInvoice.find-by-emission-date', {
           emissionDate,
         }),
@@ -368,12 +372,12 @@ export class DetailInvoiceGatewayController implements OnModuleInit {
     description:
       'This method allows you to find detail invoices by their associated email responsibility in the system.',
   })
-  async findByEmailResponsability(
+  async findByEmailResponsibility(
     @Req() request: Request,
     @Param('emailResponsability') emailResponsability: string,
   ): Promise<ApiResponse> {
     try {
-      const detailInvoicesResponse = await firstValueFrom(
+      const detailInvoicesResponse = await sendKafkaRequest(
         this.kafkaClient.send('detailInvoice.find-by-email-responsability', {
           emailResponsability,
         }),

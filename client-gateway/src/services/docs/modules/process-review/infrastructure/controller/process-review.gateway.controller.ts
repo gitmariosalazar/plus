@@ -10,17 +10,21 @@ import {
   Post,
   Put,
   Req,
+  UseGuards,
 } from '@nestjs/common';
-import { ClientKafka, ClientProxy, RpcException } from '@nestjs/microservices';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ClientKafka, RpcException } from '@nestjs/microservices';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { environments } from 'src/settings/environments/environments';
 import { ApiResponse } from 'src/shared/errors/responses/ApiResponse';
 import { CreateProcessReviewRequest } from '../../domain/schemas/dto/request/create.process-review.request';
-import { firstValueFrom } from 'rxjs';
 import { UpdateProcessReviewRequest } from '../../domain/schemas/dto/request/update.process-review.request';
+import { AuthGuard } from 'src/auth/guard/auth.guard';
+import { sendKafkaRequest } from 'src/shared/utils/kafka/send.kafka.request';
 
 @Controller('process-review')
 @ApiTags('Process Review')
+@ApiBearerAuth()
+@UseGuards(AuthGuard)
 export class ProcessReviewGatewayController implements OnModuleInit {
   constructor(
     @Inject(environments.documentsKafkaClient)
@@ -50,7 +54,7 @@ export class ProcessReviewGatewayController implements OnModuleInit {
   ): Promise<ApiResponse> {
     try {
       console.log(processReview);
-      const processReviewResponse = await firstValueFrom(
+      const processReviewResponse = await sendKafkaRequest(
         this.processReviewClient.send('process-review.create', processReview),
       );
       return new ApiResponse(
@@ -74,7 +78,7 @@ export class ProcessReviewGatewayController implements OnModuleInit {
     @Body() processReview: UpdateProcessReviewRequest,
   ): Promise<ApiResponse> {
     try {
-      const processReviewResponse = await firstValueFrom(
+      const processReviewResponse = await sendKafkaRequest(
         this.processReviewClient.send('process-review.update', {
           idProcessReview,
           processReview,
@@ -100,7 +104,7 @@ export class ProcessReviewGatewayController implements OnModuleInit {
     @Param('idProcessReview', ParseIntPipe) idProcessReview: number,
   ): Promise<ApiResponse> {
     try {
-      const processReviewResponse = await firstValueFrom(
+      const processReviewResponse = await sendKafkaRequest(
         this.processReviewClient.send('process-review.find-by-id', {
           idProcessReview,
         }),
@@ -122,7 +126,7 @@ export class ProcessReviewGatewayController implements OnModuleInit {
   })
   async findAllProcessReviews(@Req() request: Request): Promise<ApiResponse> {
     try {
-      const processReviewResponse = await firstValueFrom(
+      const processReviewResponse = await sendKafkaRequest(
         this.processReviewClient.send('process-review.find-all', {}),
       );
       return new ApiResponse(
@@ -145,7 +149,7 @@ export class ProcessReviewGatewayController implements OnModuleInit {
     @Param('idProcess', ParseIntPipe) idProcess: number,
   ): Promise<ApiResponse> {
     try {
-      const processReviewResponse = await firstValueFrom(
+      const processReviewResponse = await sendKafkaRequest(
         this.processReviewClient.send('process-review.find-by-process-id', {
           idProcess,
         }),
@@ -170,7 +174,7 @@ export class ProcessReviewGatewayController implements OnModuleInit {
     @Param('idProcessReview', ParseIntPipe) idProcessReview: number,
   ): Promise<ApiResponse> {
     try {
-      const deleteResponse = await firstValueFrom(
+      const deleteResponse = await sendKafkaRequest(
         this.processReviewClient.send('process-review.delete', {
           idProcessReview,
         }),

@@ -10,17 +10,21 @@ import {
   Post,
   Put,
   Req,
+  UseGuards,
 } from '@nestjs/common';
-import { ClientKafka, ClientProxy, RpcException } from '@nestjs/microservices';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ClientKafka, RpcException } from '@nestjs/microservices';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { environments } from 'src/settings/environments/environments';
 import { CreateServiceRequest } from '../../domain/schemas/dto/request/create.services.request';
 import { ApiResponse } from 'src/shared/errors/responses/ApiResponse';
-import { firstValueFrom } from 'rxjs';
 import { UpdateServiceRequest } from '../../domain/schemas/dto/request/update.services.request';
+import { AuthGuard } from 'src/auth/guard/auth.guard';
+import { sendKafkaRequest } from 'src/shared/utils/kafka/send.kafka.request';
 
 @Controller('services')
 @ApiTags('Services')
+@ApiBearerAuth()
+@UseGuards(AuthGuard)
 export class ServicesGatewayController implements OnModuleInit {
   constructor(
     @Inject(environments.documentsKafkaClient)
@@ -47,7 +51,7 @@ export class ServicesGatewayController implements OnModuleInit {
     @Body() service: CreateServiceRequest,
   ): Promise<ApiResponse> {
     try {
-      const serviceResponse = await firstValueFrom(
+      const serviceResponse = await sendKafkaRequest(
         this.documentsClient.send('service.create', service),
       );
       return new ApiResponse(
@@ -71,7 +75,7 @@ export class ServicesGatewayController implements OnModuleInit {
     @Param('idService', ParseIntPipe) idService: number,
   ): Promise<ApiResponse> {
     try {
-      const serviceResponse = await firstValueFrom(
+      const serviceResponse = await sendKafkaRequest(
         this.documentsClient.send('service.update', { idService, service }),
       );
       return new ApiResponse(
@@ -91,7 +95,7 @@ export class ServicesGatewayController implements OnModuleInit {
   })
   async findAllServices(@Req() request: Request): Promise<ApiResponse> {
     try {
-      const servicesResponse = await firstValueFrom(
+      const servicesResponse = await sendKafkaRequest(
         this.documentsClient.send('service.find-all', {}),
       );
       return new ApiResponse(
@@ -114,7 +118,7 @@ export class ServicesGatewayController implements OnModuleInit {
     @Param('idService', ParseIntPipe) idService: number,
   ): Promise<ApiResponse> {
     try {
-      const serviceResponse = await firstValueFrom(
+      const serviceResponse = await sendKafkaRequest(
         this.documentsClient.send('service.find-by-id', { idService }),
       );
       return new ApiResponse(
@@ -137,7 +141,7 @@ export class ServicesGatewayController implements OnModuleInit {
     @Param('name') name: string,
   ): Promise<ApiResponse> {
     try {
-      const serviceResponse = await firstValueFrom(
+      const serviceResponse = await sendKafkaRequest(
         this.documentsClient.send('service.find-by-name', { name }),
       );
       return new ApiResponse(
@@ -160,7 +164,7 @@ export class ServicesGatewayController implements OnModuleInit {
     @Param('idService', ParseIntPipe) idService: number,
   ): Promise<ApiResponse> {
     try {
-      const deleteResponse = await firstValueFrom(
+      const deleteResponse = await sendKafkaRequest(
         this.documentsClient.send('service.delete', { idService }),
       );
       return new ApiResponse(

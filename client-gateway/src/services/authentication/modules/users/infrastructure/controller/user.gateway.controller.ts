@@ -13,19 +13,19 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
-import { ClientKafka, ClientProxy, RpcException } from '@nestjs/microservices';
+import { ClientKafka, RpcException } from '@nestjs/microservices';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { firstValueFrom } from 'rxjs';
 import { environments } from 'src/settings/environments/environments';
 import { ApiResponse } from 'src/shared/errors/responses/ApiResponse';
 import { CreateUserRequest } from '../../domain/schemas/dto/request/create.user.request';
 import { UpdateUserRequest } from '../../domain/schemas/dto/request/update.user.request';
 import { AuthGuard } from 'src/auth/guard/auth.guard';
+import { sendKafkaRequest } from 'src/shared/utils/kafka/send.kafka.request';
 
 @Controller('user')
 @ApiTags('user')
-//@ApiBearerAuth()
-//@UseGuards(AuthGuard)
+@ApiBearerAuth()
+@UseGuards(AuthGuard)
 export class UserGatewayController implements OnModuleInit {
   private readonly logger = new Logger(UserGatewayController.name);
   constructor(
@@ -54,7 +54,7 @@ export class UserGatewayController implements OnModuleInit {
       this.logger.warn(
         `[UserGatewayController] Sending request to find all users`,
       );
-      const users = await firstValueFrom(
+      const users = await sendKafkaRequest(
         this.userClient.send('user.find-all', {}),
       );
       this.logger.warn(
@@ -80,7 +80,7 @@ export class UserGatewayController implements OnModuleInit {
     @Param('idUser', ParseIntPipe) idUser: number,
   ): Promise<ApiResponse> {
     try {
-      const user = await firstValueFrom(
+      const user = await sendKafkaRequest(
         this.userClient.send('user.find-by-id', { idUser }),
       );
       return new ApiResponse('User retrieved successfully', user, request.url);
@@ -99,7 +99,7 @@ export class UserGatewayController implements OnModuleInit {
     @Param('userEmail') userEmail: string,
   ): Promise<ApiResponse> {
     try {
-      const user = await firstValueFrom(
+      const user = await sendKafkaRequest(
         this.userClient.send('user.find-by-email', { userEmail: userEmail }),
       );
       return new ApiResponse('User retrieved successfully', user, request.url);
@@ -118,7 +118,7 @@ export class UserGatewayController implements OnModuleInit {
     @Body() userRequest: CreateUserRequest,
   ): Promise<ApiResponse> {
     try {
-      const createdUser = await firstValueFrom(
+      const createdUser = await sendKafkaRequest(
         this.userClient.send('user.create', userRequest),
       );
       return new ApiResponse(
@@ -142,7 +142,7 @@ export class UserGatewayController implements OnModuleInit {
     @Body() userRequest: UpdateUserRequest,
   ): Promise<ApiResponse> {
     try {
-      const updatedUser = await firstValueFrom(
+      const updatedUser = await sendKafkaRequest(
         this.userClient.send('user.update', { idUser, userRequest }),
       );
       return new ApiResponse(
@@ -165,7 +165,7 @@ export class UserGatewayController implements OnModuleInit {
     @Param('idUser', ParseIntPipe) idUser: number,
   ): Promise<ApiResponse> {
     try {
-      const deleted = await firstValueFrom(
+      const deleted = await sendKafkaRequest(
         this.userClient.send('user.delete', { idUser }),
       );
       return new ApiResponse('User deleted successfully', deleted, request.url);

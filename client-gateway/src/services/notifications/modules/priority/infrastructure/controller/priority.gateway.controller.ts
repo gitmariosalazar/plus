@@ -10,17 +10,21 @@ import {
   Post,
   Put,
   Req,
+  UseGuards,
 } from '@nestjs/common';
-import { ClientKafka, ClientProxy, RpcException } from '@nestjs/microservices';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ClientKafka, RpcException } from '@nestjs/microservices';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { environments } from 'src/settings/environments/environments';
 import { CreatePriorityRequest } from '../../domain/schemas/dto/request/create.priority.request';
 import { ApiResponse } from 'src/shared/errors/responses/ApiResponse';
-import { firstValueFrom } from 'rxjs';
 import { UpdatePriorityRequest } from '../../domain/schemas/dto/request/update.priority.request';
+import { AuthGuard } from 'src/auth/guard/auth.guard';
+import { sendKafkaRequest } from 'src/shared/utils/kafka/send.kafka.request';
 
 @Controller('priority')
 @ApiTags('Priority')
+@ApiBearerAuth()
+@UseGuards(AuthGuard)
 export class PriorityGatewayController implements OnModuleInit {
   constructor(
     @Inject(environments.notificationKafkaClient)
@@ -47,7 +51,7 @@ export class PriorityGatewayController implements OnModuleInit {
     @Body() priority: CreatePriorityRequest,
   ): Promise<ApiResponse> {
     try {
-      const priorityResponse = await firstValueFrom(
+      const priorityResponse = await sendKafkaRequest(
         this.priorityClient.send('priority.create', { priority }),
       );
       return new ApiResponse(
@@ -71,7 +75,7 @@ export class PriorityGatewayController implements OnModuleInit {
     @Body() priority: UpdatePriorityRequest,
   ): Promise<ApiResponse> {
     try {
-      const priorityResponse = await firstValueFrom(
+      const priorityResponse = await sendKafkaRequest(
         this.priorityClient.send('priority.update', { idPriority, priority }),
       );
       return new ApiResponse(
@@ -91,7 +95,7 @@ export class PriorityGatewayController implements OnModuleInit {
   })
   async findAllPriorities(@Req() request: Request): Promise<ApiResponse> {
     try {
-      const priorities = await firstValueFrom(
+      const priorities = await sendKafkaRequest(
         this.priorityClient.send('priority.find-all', {}),
       );
       return new ApiResponse(
@@ -114,7 +118,7 @@ export class PriorityGatewayController implements OnModuleInit {
     @Param('idPriority', ParseIntPipe) idPriority: number,
   ): Promise<ApiResponse> {
     try {
-      const deleted = await firstValueFrom(
+      const deleted = await sendKafkaRequest(
         this.priorityClient.send('priority.delete', { idPriority }),
       );
       return new ApiResponse(
@@ -137,7 +141,7 @@ export class PriorityGatewayController implements OnModuleInit {
     @Param('idPriority', ParseIntPipe) idPriority: number,
   ): Promise<ApiResponse> {
     try {
-      const priority = await firstValueFrom(
+      const priority = await sendKafkaRequest(
         this.priorityClient.send('priority.find-by-id', { idPriority }),
       );
       return new ApiResponse(
@@ -160,7 +164,7 @@ export class PriorityGatewayController implements OnModuleInit {
     @Param('name') name: string,
   ): Promise<ApiResponse> {
     try {
-      const priority = await firstValueFrom(
+      const priority = await sendKafkaRequest(
         this.priorityClient.send('priority.find-by-name', { name }),
       );
       return new ApiResponse(

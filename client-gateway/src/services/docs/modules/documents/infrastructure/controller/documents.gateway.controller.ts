@@ -10,17 +10,21 @@ import {
   Delete,
   ParseIntPipe,
   OnModuleInit,
+  UseGuards,
 } from '@nestjs/common';
-import { ClientKafka, ClientProxy, RpcException } from '@nestjs/microservices';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ClientKafka, RpcException } from '@nestjs/microservices';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { environments } from 'src/settings/environments/environments';
 import { CreateDocumentRequest } from '../../domain/schemas/dto/request/create.document.request';
 import { ApiResponse } from 'src/shared/errors/responses/ApiResponse';
-import { firstValueFrom } from 'rxjs';
 import { UpdateDocumentRequest } from '../../domain/schemas/dto/request/update.document.request';
+import { sendKafkaRequest } from 'src/shared/utils/kafka/send.kafka.request';
+import { AuthGuard } from 'src/auth/guard/auth.guard';
 
 @Controller('documents')
 @ApiTags('Documents')
+@ApiBearerAuth()
+@UseGuards(AuthGuard)
 export class DocumentsGatewayController implements OnModuleInit {
   constructor(
     @Inject(environments.documentsKafkaClient)
@@ -52,7 +56,7 @@ export class DocumentsGatewayController implements OnModuleInit {
     @Body() document: CreateDocumentRequest,
   ): Promise<ApiResponse> {
     try {
-      const response = await firstValueFrom(
+      const response = await sendKafkaRequest(
         this.documentsClient.send('documents.create', document),
       );
 
@@ -78,7 +82,7 @@ export class DocumentsGatewayController implements OnModuleInit {
     @Param('idDocument', ParseIntPipe) idDocument: number,
   ): Promise<ApiResponse> {
     try {
-      const response = await firstValueFrom(
+      const response = await sendKafkaRequest(
         this.documentsClient.send('documents.update', { idDocument, document }),
       );
 
@@ -100,7 +104,7 @@ export class DocumentsGatewayController implements OnModuleInit {
   })
   async findAllDocuments(@Req() requst: Request): Promise<ApiResponse> {
     try {
-      const response = await firstValueFrom(
+      const response = await sendKafkaRequest(
         this.documentsClient.send('documents.find-all', {}),
       );
 
@@ -125,7 +129,7 @@ export class DocumentsGatewayController implements OnModuleInit {
     @Param('idDocument', ParseIntPipe) idDocument: number,
   ): Promise<ApiResponse> {
     try {
-      const response = await firstValueFrom(
+      const response = await sendKafkaRequest(
         this.documentsClient.send('documents.find-by-id', { idDocument }),
       );
 
@@ -150,7 +154,7 @@ export class DocumentsGatewayController implements OnModuleInit {
     @Param('idTypeDocument', ParseIntPipe) idTypeDocument: number,
   ): Promise<ApiResponse> {
     try {
-      const response = await firstValueFrom(
+      const response = await sendKafkaRequest(
         this.documentsClient.send('documents.find-by-type-document', {
           idTypeDocument,
         }),
@@ -177,7 +181,7 @@ export class DocumentsGatewayController implements OnModuleInit {
     @Param('idProcess', ParseIntPipe) idProcess: number,
   ): Promise<ApiResponse> {
     try {
-      const response = await firstValueFrom(
+      const response = await sendKafkaRequest(
         this.documentsClient.send('documents.find-by-process-id', {
           idProcess,
         }),
@@ -204,7 +208,7 @@ export class DocumentsGatewayController implements OnModuleInit {
     @Param('idStatus', ParseIntPipe) idStatus: number,
   ): Promise<ApiResponse> {
     try {
-      const response = await firstValueFrom(
+      const response = await sendKafkaRequest(
         this.documentsClient.send('documents.find-by-status', { idStatus }),
       );
 
@@ -229,7 +233,7 @@ export class DocumentsGatewayController implements OnModuleInit {
     @Param('idDocument', ParseIntPipe) idDocument: number,
   ): Promise<ApiResponse> {
     try {
-      const response = await firstValueFrom(
+      const response = await sendKafkaRequest(
         this.documentsClient.send('documents.delete', { idDocument }),
       );
 

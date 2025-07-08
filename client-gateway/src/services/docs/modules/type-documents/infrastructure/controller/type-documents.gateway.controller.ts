@@ -10,17 +10,21 @@ import {
   Post,
   Put,
   Req,
+  UseGuards,
 } from '@nestjs/common';
-import { ClientKafka, ClientProxy, RpcException } from '@nestjs/microservices';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
-import { firstValueFrom } from 'rxjs';
+import { ClientKafka, RpcException } from '@nestjs/microservices';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { environments } from 'src/settings/environments/environments';
 import { ApiResponse } from 'src/shared/errors/responses/ApiResponse';
 import { CreateTypeDocumentsRequest } from '../../domain/schemas/dto/request/create.type-documents.request';
 import { UpdateTypeDocumentsRequest } from '../../domain/schemas/dto/request/update.type-documents.request';
+import { AuthGuard } from 'src/auth/guard/auth.guard';
+import { sendKafkaRequest } from 'src/shared/utils/kafka/send.kafka.request';
 
 @Controller('type-documents')
 @ApiTags('Type Documents')
+@ApiBearerAuth()
+@UseGuards(AuthGuard)
 export class TypeDocumentsGatewayController implements OnModuleInit {
   constructor(
     @Inject(environments.documentsKafkaClient)
@@ -46,7 +50,7 @@ export class TypeDocumentsGatewayController implements OnModuleInit {
   })
   async findAllTypeDocuments(@Req() request: Request): Promise<ApiResponse> {
     try {
-      const typeDocuments = await firstValueFrom(
+      const typeDocuments = await sendKafkaRequest(
         this.typeDocumentsClient.send('typeDocuments.find-all', {}),
       );
       return new ApiResponse(
@@ -69,7 +73,7 @@ export class TypeDocumentsGatewayController implements OnModuleInit {
     @Param('idTypeDocument', ParseIntPipe) idTypeDocument: number,
   ): Promise<ApiResponse> {
     try {
-      const typeDocument = await firstValueFrom(
+      const typeDocument = await sendKafkaRequest(
         this.typeDocumentsClient.send('typeDocuments.find-by-id', {
           idTypeDocument,
         }),
@@ -94,7 +98,7 @@ export class TypeDocumentsGatewayController implements OnModuleInit {
     @Param('title') title: string,
   ): Promise<ApiResponse> {
     try {
-      const typeDocument = await firstValueFrom(
+      const typeDocument = await sendKafkaRequest(
         this.typeDocumentsClient.send('typeDocuments.find-by-title', { title }),
       );
       return new ApiResponse(
@@ -116,7 +120,7 @@ export class TypeDocumentsGatewayController implements OnModuleInit {
     @Body() typeDocument: CreateTypeDocumentsRequest,
   ): Promise<ApiResponse> {
     try {
-      const createdTypeDocument = await firstValueFrom(
+      const createdTypeDocument = await sendKafkaRequest(
         this.typeDocumentsClient.send('typeDocuments.create', typeDocument),
       );
       return new ApiResponse(
@@ -140,7 +144,7 @@ export class TypeDocumentsGatewayController implements OnModuleInit {
     @Body() typeDocument: UpdateTypeDocumentsRequest,
   ): Promise<ApiResponse> {
     try {
-      const updatedTypeDocument = await firstValueFrom(
+      const updatedTypeDocument = await sendKafkaRequest(
         this.typeDocumentsClient.send('typeDocuments.update', {
           idTypeDocument,
           typeDocument,
@@ -166,7 +170,7 @@ export class TypeDocumentsGatewayController implements OnModuleInit {
     @Param('idTypeDocument', ParseIntPipe) idTypeDocument: number,
   ): Promise<ApiResponse> {
     try {
-      const deletedTypeDocument = await firstValueFrom(
+      const deletedTypeDocument = await sendKafkaRequest(
         this.typeDocumentsClient.send('typeDocuments.delete', {
           idTypeDocument,
         }),

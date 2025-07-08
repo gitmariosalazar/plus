@@ -12,19 +12,19 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
-import { ClientKafka, ClientProxy, RpcException } from '@nestjs/microservices';
+import { ClientKafka, RpcException } from '@nestjs/microservices';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { firstValueFrom } from 'rxjs';
 import { environments } from 'src/settings/environments/environments';
 import { ApiResponse } from 'src/shared/errors/responses/ApiResponse';
 import { CreatePermissionRequest } from '../../domain/schemas/dto/request/create.permission.request';
 import { UpdatePermissionRequest } from '../../domain/schemas/dto/request/update.permission.request';
 import { AuthGuard } from 'src/auth/guard/auth.guard';
+import { sendKafkaRequest } from 'src/shared/utils/kafka/send.kafka.request';
 
 @Controller('permission')
 @ApiTags('permission')
-//@ApiBearerAuth()
-//@UseGuards(AuthGuard)
+@ApiBearerAuth()
+@UseGuards(AuthGuard)
 export class PermissionGatewayController implements OnModuleInit {
   constructor(
     @Inject(environments.authenticationKafkaClient)
@@ -49,7 +49,7 @@ export class PermissionGatewayController implements OnModuleInit {
   })
   async findAll(@Req() request: Request): Promise<ApiResponse> {
     try {
-      const permissions = await firstValueFrom(
+      const permissions = await sendKafkaRequest(
         this.permissionClient.send('permission.find-all', {}),
       );
       return new ApiResponse(
@@ -72,7 +72,7 @@ export class PermissionGatewayController implements OnModuleInit {
     @Param('idPermission', ParseIntPipe) idPermission: number,
   ): Promise<ApiResponse> {
     try {
-      const permission = await firstValueFrom(
+      const permission = await sendKafkaRequest(
         this.permissionClient.send('permission.find-by-id', { idPermission }),
       );
       return new ApiResponse(
@@ -95,7 +95,7 @@ export class PermissionGatewayController implements OnModuleInit {
     @Param('name') name: string,
   ): Promise<ApiResponse> {
     try {
-      const permission = await firstValueFrom(
+      const permission = await sendKafkaRequest(
         this.permissionClient.send('permission.find-by-name', { name }),
       );
       return new ApiResponse(
@@ -118,7 +118,7 @@ export class PermissionGatewayController implements OnModuleInit {
     @Body() permissionRequest: CreatePermissionRequest,
   ): Promise<ApiResponse> {
     try {
-      const createdPermission = await firstValueFrom(
+      const createdPermission = await sendKafkaRequest(
         this.permissionClient.send('permission.create', permissionRequest),
       );
       return new ApiResponse(
@@ -142,7 +142,7 @@ export class PermissionGatewayController implements OnModuleInit {
     @Body() permissionRequest: UpdatePermissionRequest,
   ): Promise<ApiResponse> {
     try {
-      const updatedPermission = await firstValueFrom(
+      const updatedPermission = await sendKafkaRequest(
         this.permissionClient.send('permission.update', {
           idPermission,
           permissionRequest,
@@ -168,7 +168,7 @@ export class PermissionGatewayController implements OnModuleInit {
     @Param('idPermission', ParseIntPipe) idPermission: number,
   ): Promise<ApiResponse> {
     try {
-      const isDeleted = await firstValueFrom(
+      const isDeleted = await sendKafkaRequest(
         this.permissionClient.send('permission.delete', { idPermission }),
       );
       return new ApiResponse(

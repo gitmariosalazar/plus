@@ -29,6 +29,7 @@ async function bootstrap() {
   await app.startAllMicroservices();
   await app.init();
   await app.listen(environments.serverPort);
+  console.log(`Hello World`);
   logger.log(
     `🚀🎉 This API Gateway is running on: http://127.0.0.1:${environments.serverPort}`,
   );

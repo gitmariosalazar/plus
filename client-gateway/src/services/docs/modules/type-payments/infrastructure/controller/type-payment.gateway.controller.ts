@@ -10,17 +10,21 @@ import {
   Post,
   Put,
   Req,
+  UseGuards,
 } from '@nestjs/common';
-import { ClientKafka, ClientProxy, RpcException } from '@nestjs/microservices';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ClientKafka, RpcException } from '@nestjs/microservices';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { environments } from 'src/settings/environments/environments';
 import { CreateTypePaymentRequest } from '../../domain/schemas/dto/request/create.type-payment.request';
 import { ApiResponse } from 'src/shared/errors/responses/ApiResponse';
-import { firstValueFrom } from 'rxjs';
 import { UpdateTypePaymentRequest } from '../../domain/schemas/dto/request/update.type-payment.request';
+import { AuthGuard } from 'src/auth/guard/auth.guard';
+import { sendKafkaRequest } from 'src/shared/utils/kafka/send.kafka.request';
 
 @Controller('type-payments')
 @ApiTags('Type Payments')
+@ApiBearerAuth()
+@UseGuards(AuthGuard)
 export class TypePaymentGatewayController implements OnModuleInit {
   constructor(
     @Inject(environments.documentsKafkaClient)
@@ -47,7 +51,7 @@ export class TypePaymentGatewayController implements OnModuleInit {
     @Req() request: Request,
   ): Promise<ApiResponse> {
     try {
-      const createdTypePayment = await firstValueFrom(
+      const createdTypePayment = await sendKafkaRequest(
         this.typePaymentClient.send('typePayment.create', typePayment),
       );
       return new ApiResponse(
@@ -71,7 +75,7 @@ export class TypePaymentGatewayController implements OnModuleInit {
     @Param('idTypePayment', ParseIntPipe) idTypePayment: number,
   ): Promise<ApiResponse> {
     try {
-      const updatedTypePayment = await firstValueFrom(
+      const updatedTypePayment = await sendKafkaRequest(
         this.typePaymentClient.send('typePayment.update', {
           idTypePayment,
           typePayment,
@@ -94,7 +98,7 @@ export class TypePaymentGatewayController implements OnModuleInit {
   })
   async findAllTypePayments(@Req() request: Request): Promise<ApiResponse> {
     try {
-      const typePayments = await firstValueFrom(
+      const typePayments = await sendKafkaRequest(
         this.typePaymentClient.send('typePayment.find-all', {}),
       );
       return new ApiResponse(
@@ -117,7 +121,7 @@ export class TypePaymentGatewayController implements OnModuleInit {
     @Param('idTypePayment', ParseIntPipe) idTypePayment: number,
   ): Promise<ApiResponse> {
     try {
-      const typePayment = await firstValueFrom(
+      const typePayment = await sendKafkaRequest(
         this.typePaymentClient.send('typePayment.find-by-id', {
           idTypePayment,
         }),
@@ -142,7 +146,7 @@ export class TypePaymentGatewayController implements OnModuleInit {
     @Param('name') name: string,
   ): Promise<ApiResponse> {
     try {
-      const typePayment = await firstValueFrom(
+      const typePayment = await sendKafkaRequest(
         this.typePaymentClient.send('typePayment.find-by-name', { name }),
       );
       return new ApiResponse(
@@ -165,7 +169,7 @@ export class TypePaymentGatewayController implements OnModuleInit {
     @Param('idTypePayment', ParseIntPipe) idTypePayment: number,
   ): Promise<ApiResponse> {
     try {
-      const deletedTypePayment = await firstValueFrom(
+      const deletedTypePayment = await sendKafkaRequest(
         this.typePaymentClient.send('typePayment.delete', { idTypePayment }),
       );
       return new ApiResponse(

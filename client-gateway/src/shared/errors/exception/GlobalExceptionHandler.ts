@@ -9,7 +9,6 @@ import { RpcException } from '@nestjs/microservices';
 import { ApiResponse } from '../responses/ApiResponse';
 import { statusCode } from 'src/settings/environments/status-code';
 
-
 @Catch(RpcException)
 export class RcpCustomExceptionFilter
   implements RpcExceptionFilter<RpcException>
@@ -35,19 +34,48 @@ export class RcpCustomExceptionFilter
         });
 
         const apiResponse = new ApiResponse(
-          ['Connection refused by target service. Please check the service availability.'],
+          [
+            'Connection refused by target service. Please check the service availability.',
+          ],
           null,
           response.req.url,
         );
         apiResponse.status_code = statusCode.SERVICE_UNAVAILABLE;
         return response.status(statusCode.SERVICE_UNAVAILABLE).json({
           time: new Date().toISOString(),
-          message: typeof apiResponse.message === 'string' ? [apiResponse.message] : apiResponse.message,
+          message:
+            typeof apiResponse.message === 'string'
+              ? [apiResponse.message]
+              : apiResponse.message,
           url: apiResponse.url,
           data: apiResponse.data,
           status_code: apiResponse.status_code,
         });
       }
+    }
+
+    const err = errorResponse as any;
+    if (
+      typeof err === 'object' &&
+      err?.error?.statusCode === statusCode.SERVICE_UNAVAILABLE &&
+      err?.error?.message === 'Target microservice is not responding'
+    ) {
+      this.logger.warn('Timeout: Target microservice is not responding');
+
+      const apiResponse = new ApiResponse(
+        [err.error.message],
+        null,
+        response.req.url,
+      );
+      apiResponse.status_code = statusCode.SERVICE_UNAVAILABLE;
+
+      return response.status(statusCode.SERVICE_UNAVAILABLE).json({
+        time: new Date().toISOString(),
+        message: apiResponse.message,
+        url: apiResponse.url,
+        data: apiResponse.data,
+        status_code: apiResponse.status_code,
+      });
     }
 
     let apiResponse = new ApiResponse(
@@ -78,7 +106,10 @@ export class RcpCustomExceptionFilter
 
     return response.status(httpStatusCode).json({
       time: new Date().toISOString(),
-      message: typeof apiResponse.message === 'string' ? [apiResponse.message] : apiResponse.message,
+      message:
+        typeof apiResponse.message === 'string'
+          ? [apiResponse.message]
+          : apiResponse.message,
       url: apiResponse.url,
       data: apiResponse.data,
       status_code: apiResponse.status_code,

@@ -10,17 +10,21 @@ import {
   Post,
   Put,
   Req,
+  UseGuards,
 } from '@nestjs/common';
-import { ClientKafka, ClientProxy, RpcException } from '@nestjs/microservices';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ClientKafka, RpcException } from '@nestjs/microservices';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { environments } from 'src/settings/environments/environments';
 import { CreateTypeNotificationRequest } from '../../domain/schemas/dto/request/create.type-notification.request';
 import { ApiResponse } from 'src/shared/errors/responses/ApiResponse';
-import { firstValueFrom } from 'rxjs';
 import { UpdateTypeNotificationRequest } from '../../domain/schemas/dto/request/update.type-notification.request';
+import { AuthGuard } from 'src/auth/guard/auth.guard';
+import { sendKafkaRequest } from 'src/shared/utils/kafka/send.kafka.request';
 
 @Controller('type-notification')
 @ApiTags('Type Notification')
+@ApiBearerAuth()
+@UseGuards(AuthGuard)
 export class TypeNotificationGatewayController implements OnModuleInit {
   constructor(
     @Inject(environments.notificationKafkaClient)
@@ -60,7 +64,7 @@ export class TypeNotificationGatewayController implements OnModuleInit {
     @Body() typeNotification: CreateTypeNotificationRequest,
   ): Promise<ApiResponse> {
     try {
-      const typeNotificationResponse = await firstValueFrom(
+      const typeNotificationResponse = await sendKafkaRequest(
         this.typeNotificationClient.send(
           'typeNotification.create',
           typeNotification,
@@ -89,7 +93,7 @@ export class TypeNotificationGatewayController implements OnModuleInit {
     typeNotification: UpdateTypeNotificationRequest,
   ): Promise<ApiResponse> {
     try {
-      const typeNotificationResponse = await firstValueFrom(
+      const typeNotificationResponse = await sendKafkaRequest(
         this.typeNotificationClient.send('typeNotification.update', {
           idTypeNotification,
           typeNotification,
@@ -114,7 +118,7 @@ export class TypeNotificationGatewayController implements OnModuleInit {
     @Req() request: Request,
   ): Promise<ApiResponse> {
     try {
-      const typeNotificationsResponse = await firstValueFrom(
+      const typeNotificationsResponse = await sendKafkaRequest(
         this.typeNotificationClient.send('typeNotification.findAll', {}),
       );
       return new ApiResponse(
@@ -137,7 +141,7 @@ export class TypeNotificationGatewayController implements OnModuleInit {
     @Param('idTypeNotification', ParseIntPipe) idTypeNotification: number,
   ): Promise<ApiResponse> {
     try {
-      const typeNotificationResponse = await firstValueFrom(
+      const typeNotificationResponse = await sendKafkaRequest(
         this.typeNotificationClient.send('typeNotification.find-by-id', {
           idTypeNotification,
         }),
@@ -163,7 +167,7 @@ export class TypeNotificationGatewayController implements OnModuleInit {
     @Param('name') name: string,
   ): Promise<ApiResponse> {
     try {
-      const typeNotificationResponse = await firstValueFrom(
+      const typeNotificationResponse = await sendKafkaRequest(
         this.typeNotificationClient.send('typeNotification.find-by-name', {
           name,
         }),
@@ -188,7 +192,7 @@ export class TypeNotificationGatewayController implements OnModuleInit {
     @Param('idTypeNotification', ParseIntPipe) idTypeNotification: number,
   ): Promise<ApiResponse> {
     try {
-      const deleted = await firstValueFrom(
+      const deleted = await sendKafkaRequest(
         this.typeNotificationClient.send('typeNotification.delete', {
           idTypeNotification,
         }),

@@ -12,19 +12,19 @@ import {
   UseGuards,
   OnModuleInit,
 } from '@nestjs/common';
-import { ClientKafka, ClientProxy, RpcException } from '@nestjs/microservices';
+import { ClientKafka, RpcException } from '@nestjs/microservices';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { firstValueFrom } from 'rxjs';
 import { environments } from 'src/settings/environments/environments';
 import { ApiResponse } from 'src/shared/errors/responses/ApiResponse';
 import { CreateRolePermissionRequest } from '../../domain/schemas/dto/request/create.role-permission.request';
 import { UpdateRolePermissionRequest } from '../../domain/schemas/dto/request/update.role-permission.request';
 import { AuthGuard } from 'src/auth/guard/auth.guard';
+import { sendKafkaRequest } from 'src/shared/utils/kafka/send.kafka.request';
 
 @Controller('role-permission')
 @ApiTags('role-permission')
-//@ApiBearerAuth()
-//@UseGuards(AuthGuard)
+@ApiBearerAuth()
+@UseGuards(AuthGuard)
 export class RolePermissionGatewayController implements OnModuleInit {
   constructor(
     @Inject(environments.authenticationKafkaClient)
@@ -59,7 +59,7 @@ export class RolePermissionGatewayController implements OnModuleInit {
   })
   async findAllRolePermissions(@Req() request: Request): Promise<ApiResponse> {
     try {
-      const rolePermissions = await firstValueFrom(
+      const rolePermissions = await sendKafkaRequest(
         this.rolePermissionService.send('role-permission.find-all', {}),
       );
       return new ApiResponse(
@@ -82,7 +82,7 @@ export class RolePermissionGatewayController implements OnModuleInit {
     @Param('idRolePermission', ParseIntPipe) idRolePermission: number,
   ): Promise<ApiResponse> {
     try {
-      const rolePermission = await firstValueFrom(
+      const rolePermission = await sendKafkaRequest(
         this.rolePermissionService.send('role-permission.find-by-id', {
           idRolePermission,
         }),
@@ -107,7 +107,7 @@ export class RolePermissionGatewayController implements OnModuleInit {
     @Param('userTypeId', ParseIntPipe) userTypeId: number,
   ): Promise<ApiResponse> {
     try {
-      const rolePermissions = await firstValueFrom(
+      const rolePermissions = await sendKafkaRequest(
         this.rolePermissionService.send(
           'role-permission.find-by-user-type-id',
           { userTypeId },
@@ -133,7 +133,7 @@ export class RolePermissionGatewayController implements OnModuleInit {
     @Param('permissionId', ParseIntPipe) permissionId: number,
   ): Promise<ApiResponse> {
     try {
-      const rolePermissions = await firstValueFrom(
+      const rolePermissions = await sendKafkaRequest(
         this.rolePermissionService.send(
           'role-permission.find-by-permission-id',
           { permissionId },
@@ -159,7 +159,7 @@ export class RolePermissionGatewayController implements OnModuleInit {
     @Body() rolePermissionRequest: CreateRolePermissionRequest,
   ): Promise<ApiResponse> {
     try {
-      const createdRolePermission = await firstValueFrom(
+      const createdRolePermission = await sendKafkaRequest(
         this.rolePermissionService.send(
           'role-permission.create',
           rolePermissionRequest,
@@ -186,7 +186,7 @@ export class RolePermissionGatewayController implements OnModuleInit {
     @Body() rolePermissionRequest: UpdateRolePermissionRequest,
   ): Promise<ApiResponse> {
     try {
-      const updatedRolePermission = await firstValueFrom(
+      const updatedRolePermission = await sendKafkaRequest(
         this.rolePermissionService.send('role-permission.update', {
           idRolePermission,
           rolePermissionRequest,
@@ -212,7 +212,7 @@ export class RolePermissionGatewayController implements OnModuleInit {
     @Param('idRolePermission', ParseIntPipe) idRolePermission: number,
   ): Promise<ApiResponse> {
     try {
-      const deleted = await firstValueFrom(
+      const deleted = await sendKafkaRequest(
         this.rolePermissionService.send('role-permission.delete', {
           idRolePermission,
         }),

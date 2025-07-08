@@ -11,18 +11,22 @@ import {
   Post,
   Put,
   Req,
+  UseGuards,
 } from '@nestjs/common';
-import { ClientKafka, ClientProxy, RpcException } from '@nestjs/microservices';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ClientKafka, RpcException } from '@nestjs/microservices';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { environments } from 'src/settings/environments/environments';
 import { CreateNotificationRequest } from '../../domain/schemas/dto/request/create.notification.request';
 import { ApiResponse } from 'src/shared/errors/responses/ApiResponse';
-import { firstValueFrom } from 'rxjs';
 import { UpdateNotificationRequest } from '../../domain/schemas/dto/request/update.notification.request';
 import { CreateLogsNotificationsRequest } from '../../domain/schemas/dto/request/create.logs-notifications.request';
+import { AuthGuard } from 'src/auth/guard/auth.guard';
+import { sendKafkaRequest } from 'src/shared/utils/kafka/send.kafka.request';
 
 @Controller('notification')
 @ApiTags('Notifications')
+@ApiBearerAuth()
+@UseGuards(AuthGuard)
 export class NotificationGatewayController implements OnModuleInit {
   private readonly logger = new Logger(NotificationGatewayController.name);
   constructor(
@@ -63,7 +67,7 @@ export class NotificationGatewayController implements OnModuleInit {
   ): Promise<ApiResponse> {
     try {
       this.logger.log('Sending and creating notification', notification);
-      const response = await firstValueFrom(
+      const response = await sendKafkaRequest(
         this.notificationClient.send(
           'notification.send-and-create',
           notification,
@@ -96,7 +100,7 @@ export class NotificationGatewayController implements OnModuleInit {
     try {
       this.logger.log('Creating a new notification', notification);
 
-      const response = await firstValueFrom(
+      const response = await sendKafkaRequest(
         this.notificationClient.send('notification.create', notification),
       );
 
@@ -123,7 +127,7 @@ export class NotificationGatewayController implements OnModuleInit {
     @Body() notification: UpdateNotificationRequest,
   ): Promise<ApiResponse> {
     try {
-      const response = await firstValueFrom(
+      const response = await sendKafkaRequest(
         this.notificationClient.send('notification.update', {
           idNotifications,
           notification,
@@ -148,7 +152,7 @@ export class NotificationGatewayController implements OnModuleInit {
   })
   async findAllNotifications(@Req() request: Request): Promise<ApiResponse> {
     try {
-      const response = await firstValueFrom(
+      const response = await sendKafkaRequest(
         this.notificationClient.send('notification.find-all', {}),
       );
 
@@ -172,7 +176,7 @@ export class NotificationGatewayController implements OnModuleInit {
     @Param('idNotifications', ParseIntPipe) idNotifications: number,
   ): Promise<ApiResponse> {
     try {
-      const response = await firstValueFrom(
+      const response = await sendKafkaRequest(
         this.notificationClient.send('notification.find-by-id', {
           idNotifications,
         }),
@@ -199,7 +203,7 @@ export class NotificationGatewayController implements OnModuleInit {
     @Param('email') email: string,
   ): Promise<ApiResponse> {
     try {
-      const response = await firstValueFrom(
+      const response = await sendKafkaRequest(
         this.notificationClient.send('notification.find-by-email', { email }),
       );
 
@@ -224,7 +228,7 @@ export class NotificationGatewayController implements OnModuleInit {
     @Param('idNotifications', ParseIntPipe) idNotifications: number,
   ): Promise<ApiResponse> {
     try {
-      const response = await firstValueFrom(
+      const response = await sendKafkaRequest(
         this.notificationClient.send('notification.delete', {
           idNotifications,
         }),

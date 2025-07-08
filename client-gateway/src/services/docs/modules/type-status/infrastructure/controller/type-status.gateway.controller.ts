@@ -10,16 +10,20 @@ import {
   Post,
   Put,
   Req,
+  UseGuards,
 } from '@nestjs/common';
-import { ClientKafka, ClientProxy, RpcException } from '@nestjs/microservices';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
-import { firstValueFrom } from 'rxjs';
+import { ClientKafka, RpcException } from '@nestjs/microservices';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { environments } from 'src/settings/environments/environments';
 import { ApiResponse } from 'src/shared/errors/responses/ApiResponse';
 import { CreateTypeStatusRequest } from '../../domain/schemas/dto/request/create.type-status.request';
 import { UpdateTypeStatusRequest } from '../../domain/schemas/dto/request/update.type-status.request';
+import { AuthGuard } from 'src/auth/guard/auth.guard';
+import { sendKafkaRequest } from 'src/shared/utils/kafka/send.kafka.request';
 @Controller('type-status')
 @ApiTags('Type Status')
+@ApiBearerAuth()
+@UseGuards(AuthGuard)
 export class TypeStatusGatewayController implements OnModuleInit {
   constructor(
     @Inject(environments.documentsKafkaClient)
@@ -43,7 +47,7 @@ export class TypeStatusGatewayController implements OnModuleInit {
   })
   async findAllTypeStatuses(@Req() request: Request): Promise<ApiResponse> {
     try {
-      const typeStatuses = await firstValueFrom(
+      const typeStatuses = await sendKafkaRequest(
         this.typeStatusClient.send('typeStatus.find-all', {}),
       );
       return new ApiResponse(
@@ -66,7 +70,7 @@ export class TypeStatusGatewayController implements OnModuleInit {
     @Param('idTypeStatus', ParseIntPipe) idTypeStatus: number,
   ): Promise<ApiResponse> {
     try {
-      const typeStatus = await firstValueFrom(
+      const typeStatus = await sendKafkaRequest(
         this.typeStatusClient.send('typeStatus.find-by-id', { idTypeStatus }),
       );
       return new ApiResponse(
@@ -89,7 +93,7 @@ export class TypeStatusGatewayController implements OnModuleInit {
     @Param('name') name: string,
   ): Promise<ApiResponse> {
     try {
-      const typeStatus = await firstValueFrom(
+      const typeStatus = await sendKafkaRequest(
         this.typeStatusClient.send('typeStatus.find-by-name', { name }),
       );
       return new ApiResponse(
@@ -112,7 +116,7 @@ export class TypeStatusGatewayController implements OnModuleInit {
     @Body() typeStatusRequest: CreateTypeStatusRequest,
   ): Promise<ApiResponse> {
     try {
-      const createdTypeStatus = await firstValueFrom(
+      const createdTypeStatus = await sendKafkaRequest(
         this.typeStatusClient.send('typeStatus.create', typeStatusRequest),
       );
       return new ApiResponse(
@@ -136,7 +140,7 @@ export class TypeStatusGatewayController implements OnModuleInit {
     @Body() typeStatusRequest: UpdateTypeStatusRequest,
   ): Promise<ApiResponse> {
     try {
-      const updatedTypeStatus = await firstValueFrom(
+      const updatedTypeStatus = await sendKafkaRequest(
         this.typeStatusClient.send('typeStatus.update', {
           idTypeStatus,
           typeStatusRequest,
@@ -162,7 +166,7 @@ export class TypeStatusGatewayController implements OnModuleInit {
     @Param('idTypeStatus', ParseIntPipe) idTypeStatus: number,
   ): Promise<ApiResponse> {
     try {
-      const deleted = await firstValueFrom(
+      const deleted = await sendKafkaRequest(
         this.typeStatusClient.send('typeStatus.delete', {
           idTypeStatus: idTypeStatus,
         }),

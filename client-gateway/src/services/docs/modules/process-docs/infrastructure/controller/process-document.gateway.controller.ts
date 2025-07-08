@@ -10,17 +10,21 @@ import {
   Get,
   Delete,
   OnModuleInit,
+  UseGuards,
 } from '@nestjs/common';
-import { ClientKafka, ClientProxy, RpcException } from '@nestjs/microservices';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ClientKafka, RpcException } from '@nestjs/microservices';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { environments } from 'src/settings/environments/environments';
 import { CreateProcessDocumentRequest } from '../../domain/schemas/dto/request/create.process-document.request';
 import { ApiResponse } from 'src/shared/errors/responses/ApiResponse';
-import { firstValueFrom } from 'rxjs';
 import { UpdateProcessDocumentRequest } from '../../domain/schemas/dto/request/update.process-document.request';
+import { AuthGuard } from 'src/auth/guard/auth.guard';
+import { sendKafkaRequest } from 'src/shared/utils/kafka/send.kafka.request';
 
 @Controller('process-documents')
 @ApiTags('Process Documents')
+@ApiBearerAuth()
+@UseGuards(AuthGuard)
 export class ProcessDocumentGatewayController implements OnModuleInit {
   constructor(
     @Inject(environments.documentsKafkaClient)
@@ -62,7 +66,7 @@ export class ProcessDocumentGatewayController implements OnModuleInit {
     @Body() processDocument: CreateProcessDocumentRequest,
   ): Promise<ApiResponse> {
     try {
-      const processDocumentResponse = await firstValueFrom(
+      const processDocumentResponse = await sendKafkaRequest(
         this.processDocumentSClient.send(
           'processDocuments.create',
           processDocument,
@@ -90,7 +94,7 @@ export class ProcessDocumentGatewayController implements OnModuleInit {
     @Body() processDocument: UpdateProcessDocumentRequest,
   ): Promise<ApiResponse> {
     try {
-      const processDocumentResponse = await firstValueFrom(
+      const processDocumentResponse = await sendKafkaRequest(
         this.processDocumentSClient.send('processDocuments.update', {
           idProcessDocument,
           processDocument,
@@ -113,7 +117,7 @@ export class ProcessDocumentGatewayController implements OnModuleInit {
   })
   async findAllProcessDocuments(@Req() request: Request): Promise<ApiResponse> {
     try {
-      const processDocumentsResponse = await firstValueFrom(
+      const processDocumentsResponse = await sendKafkaRequest(
         this.processDocumentSClient.send('processDocuments.find-all', {}),
       );
       return new ApiResponse(
@@ -136,7 +140,7 @@ export class ProcessDocumentGatewayController implements OnModuleInit {
     @Param('idProcessDocument', ParseIntPipe) idProcessDocument: number,
   ): Promise<ApiResponse> {
     try {
-      const processDocumentResponse = await firstValueFrom(
+      const processDocumentResponse = await sendKafkaRequest(
         this.processDocumentSClient.send('processDocuments.find-by-id', {
           idProcessDocument,
         }),
@@ -162,7 +166,7 @@ export class ProcessDocumentGatewayController implements OnModuleInit {
     @Param('idProcess', ParseIntPipe) idProcess: number,
   ): Promise<ApiResponse> {
     try {
-      const processDocumentsResponse = await firstValueFrom(
+      const processDocumentsResponse = await sendKafkaRequest(
         this.processDocumentSClient.send('processDocuments.find-by-process', {
           idProcess,
         }),
@@ -188,7 +192,7 @@ export class ProcessDocumentGatewayController implements OnModuleInit {
     @Param('idDocument', ParseIntPipe) idDocument: number,
   ): Promise<ApiResponse> {
     try {
-      const processDocumentsResponse = await firstValueFrom(
+      const processDocumentsResponse = await sendKafkaRequest(
         this.processDocumentSClient.send('processDocuments.find-by-document', {
           idDocument,
         }),
@@ -213,7 +217,7 @@ export class ProcessDocumentGatewayController implements OnModuleInit {
     @Param('idProcessDocument', ParseIntPipe) idProcessDocument: number,
   ): Promise<ApiResponse> {
     try {
-      const isDeleted = await firstValueFrom(
+      const isDeleted = await sendKafkaRequest(
         this.processDocumentSClient.send('processDocuments.delete', {
           idProcessDocument,
         }),

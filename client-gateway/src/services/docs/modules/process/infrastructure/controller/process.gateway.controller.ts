@@ -10,17 +10,21 @@ import {
   Post,
   Put,
   Req,
+  UseGuards,
 } from '@nestjs/common';
-import { ClientKafka, ClientProxy, RpcException } from '@nestjs/microservices';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ClientKafka, RpcException } from '@nestjs/microservices';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { environments } from 'src/settings/environments/environments';
 import { ApiResponse } from 'src/shared/errors/responses/ApiResponse';
 import { CreateProcessRequest } from '../../domain/schemas/dto/request/create.process.request';
-import { firstValueFrom } from 'rxjs';
 import { UpdateProcessRequest } from '../../domain/schemas/dto/request/update.process.request';
+import { AuthGuard } from 'src/auth/guard/auth.guard';
+import { sendKafkaRequest } from 'src/shared/utils/kafka/send.kafka.request';
 
 @Controller('process')
 @ApiTags('Process')
+@ApiBearerAuth()
+@UseGuards(AuthGuard)
 export class ProcessGatewayController implements OnModuleInit {
   constructor(
     @Inject(environments.documentsKafkaClient)
@@ -47,7 +51,7 @@ export class ProcessGatewayController implements OnModuleInit {
     @Body() process: CreateProcessRequest,
   ): Promise<ApiResponse> {
     try {
-      const processResponse = await firstValueFrom(
+      const processResponse = await sendKafkaRequest(
         this.processClient.send('process.create', process),
       );
       return new ApiResponse(
@@ -71,7 +75,7 @@ export class ProcessGatewayController implements OnModuleInit {
     @Body() process: UpdateProcessRequest,
   ): Promise<ApiResponse> {
     try {
-      const processResponse = await firstValueFrom(
+      const processResponse = await sendKafkaRequest(
         this.processClient.send('process.update', { idProcess, process }),
       );
       return new ApiResponse(
@@ -94,7 +98,7 @@ export class ProcessGatewayController implements OnModuleInit {
     @Param('idProcess', ParseIntPipe) idProcess: number,
   ): Promise<ApiResponse> {
     try {
-      const processResponse = await firstValueFrom(
+      const processResponse = await sendKafkaRequest(
         this.processClient.send('process.find-by-id', { idProcess }),
       );
       return new ApiResponse(
@@ -117,7 +121,7 @@ export class ProcessGatewayController implements OnModuleInit {
     @Param('processNumber') processNumber: string,
   ): Promise<ApiResponse> {
     try {
-      const processResponse = await firstValueFrom(
+      const processResponse = await sendKafkaRequest(
         this.processClient.send('process.find-by-process-number', {
           processNumber,
         }),
@@ -139,7 +143,7 @@ export class ProcessGatewayController implements OnModuleInit {
   })
   async findAllProcesses(@Req() request: Request): Promise<ApiResponse> {
     try {
-      const processesResponse = await firstValueFrom(
+      const processesResponse = await sendKafkaRequest(
         this.processClient.send('process.find-all', {}),
       );
       return new ApiResponse(
@@ -162,7 +166,7 @@ export class ProcessGatewayController implements OnModuleInit {
     @Param('idProcess', ParseIntPipe) idProcess: number,
   ): Promise<ApiResponse> {
     try {
-      const result = await firstValueFrom(
+      const result = await sendKafkaRequest(
         this.processClient.send('process.delete', { idProcess }),
       );
       return new ApiResponse(
